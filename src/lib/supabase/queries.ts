@@ -207,8 +207,6 @@ export interface FeedItem extends Activity {
   has_kudosed: boolean;
 }
 
-const FEED_COLUMNS = `${ACTIVITY_COLUMNS}, username, display_name, avatar_url, kudos_count, comment_count, has_kudosed`;
-
 /** Cursor pagination on created_at — offset pagination skips rows as data lands. */
 export function useFeed() {
   return useInfiniteQuery({

@@ -1,0 +1,9 @@
+{
+  "// note": "Typechecks the web variant of platform-split components. The base tsconfig lists .native first, so TrackMap.web.tsx would otherwise never be checked.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "moduleSuffixes": [".web", ".native", ""]
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "supabase", "scripts"]
+}

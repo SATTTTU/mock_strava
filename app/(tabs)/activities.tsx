@@ -8,7 +8,6 @@ import { theme } from '../../src/theme/tokens';
 import { SportBadge, EmptyState, ErrorState } from '../../src/components/common';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { SPORT_LABELS, formatDate, formatDistance, formatDuration } from '../../src/lib/format';
-import type { Activity } from '../../src/lib/validation/schemas';
 
 const FILTERS = ['all', 'run', 'ride', 'hike', 'walk'] as const;
 type Filter = (typeof FILTERS)[number];

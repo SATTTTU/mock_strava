@@ -13,9 +13,21 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+/**
+ * A profile is only meaningful for the user it was loaded for. Storing the
+ * owning userId alongside it lets the value be derived at render time instead of
+ * reset inside an effect: calling setState synchronously in an effect causes a
+ * second render pass, and a sign-out followed by a sign-in as someone else could
+ * otherwise show the previous user's profile for a frame.
+ */
+interface LoadedProfile {
+  userId: string;
+  profile: Profile | null;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loaded, setLoaded] = useState<LoadedProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,10 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!userId) {
-      setProfile(null);
-      return;
-    }
+    if (!userId) return;
 
     let active = true;
 
@@ -75,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const parsed = profileSchema.safeParse(data);
-      setProfile(parsed.success ? parsed.data : null);
+      setLoaded({ userId, profile: parsed.success ? parsed.data : null });
     };
 
     void load(0);
@@ -85,6 +94,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [userId]);
 
+  // Derived rather than stored: null unless the loaded profile belongs to the
+  // current user. Sign-out and user-switch fall out of this for free.
+  const profile = loaded != null && loaded.userId === userId ? loaded.profile : null;
+
   const value = useMemo<AuthState>(
     () => ({
       session,
@@ -93,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       signOut: async () => {
         await supabase.auth.signOut();
-        setProfile(null);
+        setLoaded(null);
       },
     }),
     [session, user, profile, loading],

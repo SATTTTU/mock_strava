@@ -1,6 +1,9 @@
 param(
   [Parameter(Mandatory = $true)][string]$File,
-  [Parameter(Mandatory = $true)][string]$Token,
+  # Falls back to the env var so callers such as `npm run db:test-rls` do not
+  # have to thread the token through. Kept as a parameter so it can be passed
+  # inline without persisting it anywhere.
+  [string]$Token = $env:SUPABASE_ACCESS_TOKEN,
   [string]$ProjectRef = 'syrmaeukkrmsbqynyjik'
 )
 
@@ -15,6 +18,15 @@ param(
 # database key, and not the sb_publishable_ app key.
 
 $ErrorActionPreference = 'Stop'
+
+if (-not $Token) {
+  'No access token. Generate one at Account -> Access Tokens in the Supabase'
+  'dashboard (must start with sbp_), then either:'
+  ''
+  '  $env:SUPABASE_ACCESS_TOKEN = "sbp_..."   # then: npm run db:test-rls'
+  '  npm run db:test-rls -- -Token sbp_...'
+  exit 1
+}
 
 $sql = [string](Get-Content -LiteralPath $File -Raw)
 

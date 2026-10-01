@@ -1,6 +1,11 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    // Platform-split components: TrackMap.native.tsx and TrackMap.web.tsx have no
+    // TrackMap.tsx, so a bare `from './TrackMap'` fails to resolve without this.
+    // .native is listed first because that is the variant that ships; the web
+    // variant is typechecked separately by `npm run typecheck:web`.
+    "moduleSuffixes": [".native", ".web", ""]
   }
 }

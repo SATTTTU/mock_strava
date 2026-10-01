@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo/metro-runtime": "~57.0.16",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.20.0",
     "@supabase/supabase-js": "^2.58.0",
     "@tanstack/react-query": "^5.90.2",
     "expo": "~57.0.26",
     "expo-constants": "~57.0.20",
+    "expo-dev-client": "~57.0.19",
     "expo-file-system": "~57.0.7",
     "expo-haptics": "~57.0.3",
     "expo-linking": "~57.0.11",
@@ -27,11 +29,14 @@
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^4.0.0",
+    "react-native-web": "^0.21.2",
     "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/react": "~19.2.2",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.2",
     "jest": "~29.7.0",
     "jest-expo": "~57.0.0",
     "typescript": "~6.0.3"
@@ -44,7 +49,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "typecheck:web": "tsc -p tsconfig.web.json --noEmit",
+    "db:apply": "powershell -ExecutionPolicy Bypass -File scripts/apply-all-migrations.ps1",
+    "db:test-rls": "powershell -ExecutionPolicy Bypass -File scripts/apply-migration.ps1 -File ./supabase/tests/rls_verification.sql"
   },
   "jest": {
     "preset": "jest-expo",

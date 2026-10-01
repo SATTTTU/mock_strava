@@ -9,10 +9,11 @@ import React, {
 } from 'react';
 import { AppState, Platform } from 'react-native';
 import * as Location from 'expo-location';
-import * as TaskManager from 'expo-task-manager';
 import * as Haptics from 'expo-haptics';
 
-import './backgroundTask';
+// Importing this module runs TaskManager.defineTask at the top level, which must
+// happen before startLocationUpdatesAsync is called below. A bare side-effect
+// import would be redundant here, so keep only the named one.
 import { LOCATION_TASK_NAME, flushBackgroundBuffer } from './backgroundTask';
 import {
   appendPoints,
