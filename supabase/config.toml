@@ -1,0 +1,42 @@
+# Supabase CLI configuration.
+#
+# The project_id here is the Supabase project ref (the subdomain segment of
+# https://<ref>.supabase.co). It is deliberately NOT the EAS projectId in
+# app.json -- those are two different identifiers for two different services.
+
+project_id = "syrmaeukkrmsbqynyjik"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+# Password is never stored here. `supabase link` prompts for it and caches it
+# in the OS keychain; `SUPABASE_DB_PASSWORD` overrides.
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "mockstrava://"
+additional_redirect_urls = ["mockstrava://"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# Set enable_confirmations = true before inviting real users: until you flip
+# this, a typo'd address silently creates an account nobody can reach.
+enable_confirmations = false
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"

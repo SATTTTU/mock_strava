@@ -11,10 +11,21 @@ expo-env.d.ts
 /ios
 /android
 
-# env — never commit real credentials
+# env — never commit real credentials.
+# .env holds EXPO_PUBLIC_SUPABASE_URL and the publishable key. The publishable
+# key is designed to ship in the bundle and is gated by RLS, but it is still
+# environment-specific, so it stays out of the repo.
 .env
 .env.local
 .env.*.local
+
+# supabase CLI local state
+# .temp holds the linked project ref and cached credentials; .branches is
+# per-branch scratch. Neither is source.
+supabase/.temp/
+supabase/.branches/
+supabase/logs/
+supabase/.env
 
 # EAS
 eas-build-*.log

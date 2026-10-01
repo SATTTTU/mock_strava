@@ -2,26 +2,27 @@
 -- explicit, auditable policy set. This app stores location history: a missing
 -- policy here is a data breach, not a bug.
 
+-- NOTE: every table enables RLS immediately after its own create table, not in
+-- a block at the top of this file. The social tables are defined below, so a
+-- leading block of alter statements would fail on relations that do not exist
+-- yet.
+
 alter table public.profiles enable row level security;
 alter table public.activities enable row level security;
 alter table public.track_points enable row level security;
-alter table public.kudos enable row level security;
-alter table public.comments enable row level security;
-alter table public.follows enable row level security;
 
 -- ---------------------------------------------------------------------------
 -- profiles
--- Display name and avatar are public-ish. bio and weight_kg are private to
--- the owner, so they are not exposed through the anon/authenticated policy.
+--
+-- Two layers, and both are required. RLS decides which ROWS you may read; SQL
+-- grants decide which COLUMNS. RLS alone cannot hide a column, so:
+--   - profile rows are readable only by their owner
+--   - the public columns are additionally granted to `authenticated`
+--   - profiles_public is a definer view that exposes only public columns
 -- ---------------------------------------------------------------------------
 create policy "profiles_select_own"
   on public.profiles for select
   using (id = auth.uid());
-
-create policy "profiles_select_visible"
-  on public.profiles for select
-  to authenticated
-  using (true);
 
 create policy "profiles_update_own"
   on public.profiles for update
@@ -31,6 +32,45 @@ create policy "profiles_update_own"
 
 -- No insert policy: rows are created by the auth trigger. No delete policy:
 -- a user leaves by deleting their auth user.
+
+-- Revoke the blanket table grant Supabase creates by default, then re-grant at
+-- column granularity. bio and weight_kg stay owner-only: a signed-in user
+-- cannot select them off another user's row.
+revoke all on table public.profiles from anon, authenticated;
+grant select (id, username, display_name, avatar_url, created_at, bio, weight_kg)
+  on table public.profiles to authenticated;
+-- update stays table-wide, but profiles_update_own already limits it to the
+-- caller's own row, so a column grant would not add protection here.
+grant update on table public.profiles to authenticated;
+
+-- Public projection for anyone signed in. Runs as the view owner, so it is not
+-- bound by the profiles_select_own policy, and it simply does not name the
+-- private columns.
+create view public.profiles_public
+  with (security_barrier = true)
+  as
+    select id, username, display_name, avatar_url, created_at
+    from public.profiles;
+
+revoke all on table public.profiles_public from anon, public;
+grant select on table public.profiles_public to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- follows: declared up here because the activities visibility policy below
+-- reads it. A policy is parsed at creation time, so the relation it references
+-- must already exist.
+-- ---------------------------------------------------------------------------
+create table public.follows (
+  follower_id uuid not null references auth.users (id) on delete cascade,
+  followee_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (follower_id, followee_id),
+  check (follower_id <> followee_id)
+);
+
+create index follows_followee_idx on public.follows (followee_id, created_at desc);
+
+alter table public.follows enable row level security;
 
 -- ---------------------------------------------------------------------------
 -- activities
@@ -111,18 +151,8 @@ create policy "track_points_delete_own"
 -- No update policy: points are immutable once written.
 
 -- ---------------------------------------------------------------------------
--- follows
+-- follows policies (table created above, before activities_select_visible)
 -- ---------------------------------------------------------------------------
-create table public.follows (
-  follower_id uuid not null references auth.users (id) on delete cascade,
-  followee_id uuid not null references auth.users (id) on delete cascade,
-  created_at timestamptz not null default now(),
-  primary key (follower_id, followee_id),
-  check (follower_id <> followee_id)
-);
-
-create index follows_followee_idx on public.follows (followee_id, created_at desc);
-
 create policy "follows_select_visible"
   on public.follows for select
   to authenticated
@@ -150,6 +180,8 @@ create table public.kudos (
 );
 
 create index kudos_activity_idx on public.kudos (activity_id);
+
+alter table public.kudos enable row level security;
 
 create policy "kudos_select_visible"
   on public.kudos for select
@@ -189,6 +221,8 @@ create table public.comments (
 );
 
 create index comments_activity_idx on public.comments (activity_id, created_at);
+
+alter table public.comments enable row level security;
 
 create policy "comments_select_visible"
   on public.comments for select
@@ -264,7 +298,10 @@ as $$
     ) as has_kudosed,
     p.username, p.display_name, p.avatar_url
   from public.activities a
-  join public.profiles p on p.id = a.user_id
+  -- profiles_public, not profiles: this function is security invoker, and RLS
+  -- only lets a caller read their own profiles row. The view is what makes
+  -- another runner's display name readable in the feed.
+  join public.profiles_public p on p.id = a.user_id
   left join (
     select activity_id, count(*) as cnt from public.kudos group by activity_id
   ) k on k.activity_id = a.id

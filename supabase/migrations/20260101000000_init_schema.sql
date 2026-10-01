@@ -157,6 +157,7 @@ begin
       seq,
       recorded_at,
       ele,
+      geography,
       lag(recorded_at) over (order by seq) as prev_t,
       lag(ele)         over (order by seq) as prev_ele,
       lag(geography)    over (order by seq) as prev_geog
